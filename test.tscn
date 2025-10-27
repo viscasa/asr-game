@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3 uid="uid://dwafeut2l5s7k"]
+
+[ext_resource type="WhisperResource" uid="uid://dtt3kg8c8dayr" path="res://addons/godot_whisper/models/gglm-tiny.en.bin" id="1_6uqi0"]
+[ext_resource type="Script" uid="uid://bah6ooxpu4f0w" path="res://addons/godot_whisper/capture_stream_to_text.gd" id="2_ppyta"]
+[ext_resource type="Script" uid="uid://d3vam6hdbq6k3" path="res://addons/godot_whisper/label_transcribe.gd" id="3_ykrsh"]
+
+[sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_6uqi0"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="SpeechToText" type="SpeechToText" parent="."]
+language = 17
+language_model = ExtResource("1_6uqi0")
+script = ExtResource("2_ppyta")
+
+[node name="RichTextLabel" type="RichTextLabel" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_ykrsh")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+stream = SubResource("AudioStreamMicrophone_6uqi0")
+autoplay = true
+
+[connection signal="transcribed_msg" from="SpeechToText" to="RichTextLabel" method="_on_speech_to_text_transcribed_msg"]
