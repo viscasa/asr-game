@@ -98,11 +98,11 @@ func transcribe_thread():
 			continue
 		if finish_sentence:
 			_accumulated_frames = _accumulated_frames.slice(_accumulated_frames.size() - (0.2 * mix_rate))
+			#_accumulated_frames.clear()
 		#if !no_activity:
 		call_deferred("emit_signal", "transcribed_msg", finish_sentence, full_text)
 		last_token_count = tokens.size()
 		#print(text)
-		print(full_text)
 		print("Transcribe " + str(time_processing/ 1000.0) + " s")
 		# Sleep remaining time
 		var interval_sleep = transcribe_interval * 1000 - time_processing

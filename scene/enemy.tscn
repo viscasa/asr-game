@@ -1,0 +1,36 @@
+[gd_scene load_steps=6 format=3 uid="uid://b7upoj4sf0gi7"]
+
+[ext_resource type="Script" uid="uid://den45rud6c0l3" path="res://script/enemy.gd" id="1_h08p8"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h08p8"]
+albedo_color = Color(0.91806, 0.575202, 0.222449, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_f87vc"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8u16h"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_h08p8"]
+size = Vector3(1, 1.6632385, 1)
+
+[node name="Enemy" type="CharacterBody3D" groups=["enemy"]]
+script = ExtResource("1_h08p8")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+material_override = SubResource("StandardMaterial3D_h08p8")
+cast_shadow = 0
+mesh = SubResource("CapsuleMesh_f87vc")
+
+[node name="Collider" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_8u16h")
+
+[node name="Hitbox" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9676031, 0)
+shape = SubResource("BoxShape3D_h08p8")
