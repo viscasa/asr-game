@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://cfq1y342ntrla"]
+[gd_scene load_steps=8 format=3 uid="uid://cfq1y342ntrla"]
 
 [ext_resource type="PackedScene" uid="uid://bs72ogkvdd7d6" path="res://scene/player.tscn" id="1_pjass"]
 [ext_resource type="Script" uid="uid://drq1648q4ep2k" path="res://script/spawner.gd" id="1_txmk2"]
@@ -16,6 +16,9 @@ background_mode = 2
 sky = SubResource("Sky_txmk2")
 tonemap_mode = 2
 glow_enabled = true
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w4qq1"]
+bg_color = Color(0.5541502, 0.05391965, 0, 1)
 
 [node name="Node3D" type="Node3D"]
 script = ExtResource("1_w4qq1")
@@ -112,3 +115,12 @@ offset_bottom = 23.0
 grow_horizontal = 2
 theme_override_font_sizes/font_size = 30
 text = "Waiting for voice input...."
+
+[node name="ProgressBar" type="ProgressBar" parent="UI"]
+offset_left = 38.0
+offset_top = 1006.0001
+offset_right = 210.0
+offset_bottom = 1033.0001
+scale = Vector2(1.79, 1.79)
+theme_override_styles/fill = SubResource("StyleBoxFlat_w4qq1")
+value = 100.0

@@ -1,6 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://b7upoj4sf0gi7"]
+[gd_scene load_steps=15 format=3 uid="uid://b7upoj4sf0gi7"]
 
 [ext_resource type="Script" uid="uid://den45rud6c0l3" path="res://script/enemy.gd" id="1_h08p8"]
+[ext_resource type="Texture2D" uid="uid://dwaiyof0g36ln" path="res://assets/materials/Diffuse.png" id="2_8u16h"]
+[ext_resource type="ArrayMesh" uid="uid://bet2redgxgk5a" path="res://assets/model/obj/DiamondSword.obj" id="3_b7koy"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h08p8"]
 albedo_color = Color(0.91806, 0.575202, 0.222449, 1)
@@ -9,6 +11,14 @@ albedo_color = Color(0.91806, 0.575202, 0.222449, 1)
 radius = 0.4
 height = 1.8
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yvcfn"]
+albedo_texture = ExtResource("2_8u16h")
+
+[sub_resource type="SphereMesh" id="SphereMesh_h08p8"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f87vc"]
+albedo_color = Color(0, 0, 0, 1)
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8u16h"]
 radius = 0.4
 height = 1.8
@@ -16,14 +26,270 @@ height = 1.8
 [sub_resource type="BoxShape3D" id="BoxShape3D_h08p8"]
 size = Vector3(1, 1.6632385, 1)
 
+[sub_resource type="Animation" id="Animation_8u16h"]
+resource_name = "attack"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Skeleton3D/RightArmAttachment/RightHand:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(7.1204482e-09, -0.4837704, 1.2719959), Vector3(-0.13345674, 1.7120422, 1.0018201)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Skeleton3D/RightArmAttachment/RightHand/Sword:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(-0.3429929, -0.50843483, -2.3486996)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Skeleton3D/RightArmAttachment/RightHand/Sword:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0.31709254, -0.37036332, -0.036028072)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Area3D:monitoring")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.45, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Area3D:monitorable")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.45, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+
+[sub_resource type="Animation" id="Animation_b7koy"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Skeleton3D/RightArmAttachment/RightHand:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Skeleton3D/RightArmAttachment/RightHand/Sword:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.001),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Skeleton3D/RightArmAttachment/RightHand/Sword:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.001),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0.32360813, -0.3915156, 0.0060972422)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Area3D:monitoring")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Area3D:monitorable")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/5/type = "position_3d"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Skeleton3D:RightArm")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = PackedFloat32Array(0, 1, 0.54, 0, 0)
+tracks/6/type = "rotation_3d"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Skeleton3D:RightArm")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = PackedFloat32Array(0, 1, 0, 0, 0, 1)
+tracks/7/type = "scale_3d"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Skeleton3D:RightArm")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = PackedFloat32Array(0, 1, 1, 1, 1)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_b7koy"]
+_data = {
+&"RESET": SubResource("Animation_b7koy"),
+&"attack": SubResource("Animation_8u16h")
+}
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8u16h"]
+size = Vector3(0.5810547, 0.40625, 0.44921875)
+
 [node name="Enemy" type="CharacterBody3D" groups=["enemy"]]
 script = ExtResource("1_h08p8")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
+[node name="Skeleton3D" type="Skeleton3D" parent="."]
+bones/0/name = "Root"
+bones/0/parent = -1
+bones/0/rest = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+bones/0/enabled = true
+bones/0/position = Vector3(0, 0, 0)
+bones/0/rotation = Quaternion(0, 0, 0, 1)
+bones/0/scale = Vector3(1, 1, 1)
+bones/1/name = "Spine"
+bones/1/parent = 0
+bones/1/rest = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+bones/1/enabled = true
+bones/1/position = Vector3(0, 0.9, 0)
+bones/1/rotation = Quaternion(0, 0, 0, 1)
+bones/1/scale = Vector3(1, 1, 1)
+bones/2/name = "Head"
+bones/2/parent = 1
+bones/2/rest = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+bones/2/enabled = true
+bones/2/position = Vector3(0, 0.5, 0)
+bones/2/rotation = Quaternion(0, 0, 0, 1)
+bones/2/scale = Vector3(1, 1, 1)
+bones/3/name = "RightArm"
+bones/3/parent = 1
+bones/3/rest = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54, 0, 0)
+bones/3/enabled = true
+bones/3/position = Vector3(0.54, 0, 0)
+bones/3/rotation = Quaternion(0, 0, 0, 1)
+bones/3/scale = Vector3(1, 1, 1)
+bones/4/name = "LeftArm"
+bones/4/parent = 1
+bones/4/rest = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.54, 0, 0)
+bones/4/enabled = true
+bones/4/position = Vector3(-0.54, 0, 0)
+bones/4/rotation = Quaternion(0, 0, 0, 1)
+bones/4/scale = Vector3(1, 1, 1)
+
+[node name="BodyAttachment" type="BoneAttachment3D" parent="Skeleton3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+bone_name = "Spine"
+bone_idx = 1
+
+[node name="Mesh" type="MeshInstance3D" parent="Skeleton3D/BodyAttachment"]
 material_override = SubResource("StandardMaterial3D_h08p8")
 cast_shadow = 0
 mesh = SubResource("CapsuleMesh_f87vc")
+
+[node name="RightArmAttachment" type="BoneAttachment3D" parent="Skeleton3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54, 0.9, 0)
+bone_name = "RightArm"
+bone_idx = 3
+
+[node name="RightHand" type="Node3D" parent="Skeleton3D/RightArmAttachment"]
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000002, 0, 0, 0, 1, -0.16326216, 0.1300385, 0)
+
+[node name="Mesh2" type="MeshInstance3D" parent="Skeleton3D/RightArmAttachment/RightHand"]
+transform = Transform3D(-0.15673868, 0.22671896, 0, -0.124229565, -0.2860481, 0, 0, 0, 0.2, 0.16326216, -0.1670385, 0)
+material_override = SubResource("StandardMaterial3D_h08p8")
+cast_shadow = 0
+mesh = SubResource("CapsuleMesh_f87vc")
+skeleton = NodePath("../..")
+
+[node name="Sword" type="Node3D" parent="Skeleton3D/RightArmAttachment/RightHand"]
+transform = Transform3D(1.000001, 0, 0, 0, 1.0000011, 0, 0, 0, 1.0000008, 0.32360813, -0.3915156, 0.0060972422)
+
+[node name="DiamondSword" type="MeshInstance3D" parent="Skeleton3D/RightArmAttachment/RightHand/Sword"]
+transform = Transform3D(0.0002642355, 0.019998254, 0, -0.019998254, 0.0002642355, 0, 0, 0, 0.02, 0.012672842, 0.29533368, -0.2762162)
+material_override = SubResource("StandardMaterial3D_yvcfn")
+mesh = ExtResource("3_b7koy")
+skeleton = NodePath("../../..")
+
+[node name="LeftArmAttachment" type="BoneAttachment3D" parent="Skeleton3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.54, 0.9, 0)
+bone_name = "LeftArm"
+bone_idx = 4
+
+[node name="Mesh3" type="MeshInstance3D" parent="Skeleton3D/LeftArmAttachment"]
+transform = Transform3D(-0.15673868, -0.22671896, 0, 0.124229565, -0.2860481, 0, 0, 0, 0.2, 0, -0.037, 0)
+material_override = SubResource("StandardMaterial3D_h08p8")
+cast_shadow = 0
+mesh = SubResource("CapsuleMesh_f87vc")
+
+[node name="HeadAttachment" type="BoneAttachment3D" parent="Skeleton3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+bone_name = "Head"
+bone_idx = 2
+
+[node name="RightEye" type="MeshInstance3D" parent="Skeleton3D/HeadAttachment"]
+transform = Transform3D(0.185, 0, 0, 0, 0.185, 0, 0, 0, 0.185, 0.175, -0.089, -0.351)
+mesh = SubResource("SphereMesh_h08p8")
+
+[node name="Pupil" type="MeshInstance3D" parent="Skeleton3D/HeadAttachment/RightEye"]
+transform = Transform3D(0.47, 0, 0, 0, 0.47, 0, 0, 0, 0.47, 0.104, -0.054, -0.324)
+material_override = SubResource("StandardMaterial3D_f87vc")
+mesh = SubResource("SphereMesh_h08p8")
+
+[node name="LeftEye" type="MeshInstance3D" parent="Skeleton3D/HeadAttachment"]
+transform = Transform3D(0.185, 0, 0, 0, 0.185, 0, 0, 0, 0.185, -0.175, -0.089, -0.351)
+mesh = SubResource("SphereMesh_h08p8")
+
+[node name="Pupil" type="MeshInstance3D" parent="Skeleton3D/HeadAttachment/LeftEye"]
+transform = Transform3D(0.47, 0, 0, 0, 0.47, 0, 0, 0, 0.47, -0.104, -0.054, -0.324)
+material_override = SubResource("StandardMaterial3D_f87vc")
+mesh = SubResource("SphereMesh_h08p8")
 
 [node name="Collider" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -34,3 +300,23 @@ shape = SubResource("CapsuleShape3D_8u16h")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9676031, 0)
 shape = SubResource("BoxShape3D_h08p8")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_b7koy")
+}
+
+[node name="RayCast3D" type="RayCast3D" parent="."]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 1.249876, 0)
+target_position = Vector3(1.3, 0, 0)
+
+[node name="Area3D" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0379264, -1.2814484)
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16861439, 0.13700247)
+shape = SubResource("BoxShape3D_8u16h")
+
+[connection signal="body_entered" from="Area3D" to="." method="_on_area_3d_body_entered"]

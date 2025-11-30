@@ -1,0 +1,46 @@
+[gd_scene load_steps=6 format=3 uid="uid://dql8k3m2hvp5c"]
+
+[ext_resource type="Script" path="res://script/lightning_bolt.gd" id="1_lightning"]
+[ext_resource type="Shader" path="res://assets/shaders/lightning.gdshader" id="2_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lightning"]
+render_priority = 1
+shader = ExtResource("2_shader")
+shader_parameter/lightning_color = Color(0.5, 0.7, 1.0, 1.0)
+shader_parameter/core_color = Color(1.0, 1.0, 1.0, 1.0)
+shader_parameter/glow_intensity = 4.0
+shader_parameter/flicker_speed = 30.0
+shader_parameter/branch_intensity = 0.6
+shader_parameter/time_offset = 0.0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_bolt"]
+material = SubResource("ShaderMaterial_lightning")
+size = Vector2(0.5, 1.0)
+orientation = 2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_bolt2"]
+material = SubResource("ShaderMaterial_lightning")
+size = Vector2(0.5, 1.0)
+orientation = 0
+
+[node name="LightningBolt" type="Node3D"]
+script = ExtResource("1_lightning")
+
+[node name="Beam" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_bolt")
+
+[node name="Beam2" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_bolt2")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(0.6, 0.8, 1.0, 1)
+light_energy = 8.0
+light_indirect_energy = 2.0
+omni_range = 15.0
+omni_attenuation = 0.5
+
+[node name="ImpactLight" type="OmniLight3D" parent="."]
+light_color = Color(0.7, 0.85, 1.0, 1)
+light_energy = 5.0
+omni_range = 8.0
+omni_attenuation = 1.0

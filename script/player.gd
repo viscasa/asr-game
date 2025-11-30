@@ -1,5 +1,6 @@
 # ProtoController v1.0 by Brackeys (Modified for Mage Gameplay)
 extends CharacterBody3D
+class_name Player
 
 # --- BRACKEYS MOVEMENT VARIABLES ---
 @export var can_move : bool = true
@@ -27,15 +28,23 @@ extends CharacterBody3D
 # --- MAGIC SETUP ---
 @export_group("Magic Setup")
 @export var fireball_scene_path : String = "res://scene/fireball.tscn"
+@export var lightning_scene_path : String = "res://scene/lightning_bolt.tscn"
+@export var wind_ring_scene_path : String = "res://scene/wind_ring.tscn"
 
 # (Hapus variable speech_to_text & mic_player dari sini)
 var fireball_scene 
+var lightning_scene 
+var wind_ring_scene 
 
 # --- INTERNAL STATE ---
 var mouse_captured : bool = false
 var look_rotation : Vector2
 var move_speed : float = 0.0
 var freeflying : bool = false
+var health := 100
+var max_health := 100
+
+signal health_changed(new_health: int, max_health: int)
 
 @onready var head: Node3D = $Head
 @onready var collider: CollisionShape3D = $Collider
@@ -50,6 +59,14 @@ func _ready() -> void:
 	if fireball_scene_path != "":
 		if ResourceLoader.exists(fireball_scene_path):
 			fireball_scene = load(fireball_scene_path)
+	
+	if lightning_scene_path != "":
+		if ResourceLoader.exists(lightning_scene_path):
+			lightning_scene = load(lightning_scene_path)
+	
+	if wind_ring_scene_path != "":
+		if ResourceLoader.exists(wind_ring_scene_path):
+			wind_ring_scene = load(wind_ring_scene_path)
 	
 	# 3. CONNECT KE GLOBAL VOICE MANAGER
 	# Player tidak perlu setup mic, cukup dengar sinyal
@@ -141,29 +158,77 @@ func cast_fireball():
 	ball.global_position += head.global_transform.basis.z * -1.5 
 
 func cast_lightning():
-	var space_state = get_world_3d().direct_space_state
-	var origin = head.global_position
-	var end = origin - head.global_transform.basis.z * 100
-	var query = PhysicsRayQueryParameters3D.create(origin, end)
-	var result = space_state.intersect_ray(query)
+	# Ambil semua enemy
+	var enemies = get_tree().get_nodes_in_group("enemy")
 	
-	if result and result.collider.has_method("take_damage"):
-		result.collider.take_damage(100)
+	if enemies.is_empty():
+		print("Tidak ada enemy!")
+		return
+	
+	# Pilih enemy random
+	var target_enemy = enemies[randi() % enemies.size()]
+	var hit_point = target_enemy.global_position + Vector3(0, 1.0, 0)  # Sedikit di atas kaki enemy
+	
+	# Spawn lightning dari atas enemy
+	if lightning_scene:
+		var sky_offset = 15.0  # Tinggi petir dari atas
+		var sky_point = hit_point + Vector3(0, sky_offset, 0)
+		
+		# Petir utama
+		var bolt = lightning_scene.instantiate()
+		get_parent().add_child(bolt)
+		bolt.set_points(sky_point, hit_point)
+		
+		# Spawn beberapa bolt untuk efek lebih dramatis
+		for i in range(2):
+			await get_tree().create_timer(0.05).timeout
+			var extra_bolt = lightning_scene.instantiate()
+			get_parent().add_child(extra_bolt)
+			# Sedikit offset untuk variasi
+			var offset = Vector3(randf_range(-0.3, 0.3), 0, randf_range(-0.3, 0.3))
+			extra_bolt.set_points(sky_point + offset, hit_point + offset)
+	
+	# Damage enemy
+	if target_enemy.has_method("take_damage"):
+		target_enemy.take_damage(100)
 
 func cast_freeze():
 	get_tree().call_group("enemy", "apply_freeze")
 
 func cast_pushback():
+	# Spawn wind ring effect
+	if wind_ring_scene:
+		var ring = wind_ring_scene.instantiate()
+		get_parent().add_child(ring)
+		ring.global_position = global_position
+		ring.global_position.y = 0.5  # Sedikit di atas lantai
+	
+	# Pushback semua enemy dalam radius
 	var enemies = get_tree().get_nodes_in_group("enemy")
 	for enemy in enemies:
 		if global_position.distance_to(enemy.global_position) < 20:
 			var dir = (enemy.global_position - global_position).normalized()
 			if "velocity" in enemy:
-				enemy.velocity += dir * 50
+				enemy.velocity += dir * 200
 				enemy.move_and_slide()
 
 func cast_heal():
-	print("Heal casted!")
+	health = min(health + 20, max_health)
+	health_changed.emit(health, max_health)
+	print("Heal casted! Health: ", health)
+
+func take_damage(amount: int):
+	health -= amount
+	health = max(health, 0)
+	health_changed.emit(health, max_health)
+	print("Player took damage! Health: ", health)
+	
+	if health <= 0:
+		die()
+
+func die():
+	print("Player died!")
+	# Tambahkan logic game over di sini
 
 # --- HELPER FUNCTIONS ---
 

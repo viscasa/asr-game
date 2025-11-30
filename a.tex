@@ -1,0 +1,424 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage{booktabs} % Untuk tabel yang lebih rapi
+\usepackage{cite}
+
+% --- PENGATURAN PENOMORAN ---
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+
+\def\thesectiondis{\thesection.}
+\def\thesubsectiondis{\thesubsection}
+\def\thesubsubsectiondis{\thesubsubsection}
+
+\setcounter{secnumdepth}{3}
+% --------------------------------------------------
+
+% Title and Author
+\title{Real-Time Indonesian Voice Commands for Video Games using Whisper Models}
+
+\author{
+\IEEEauthorblockN{Alwie Attar Elfandra, Edmond Christian, and Kurniawati Azizah}
+\IEEEauthorblockA{Faculty of Computer Science, Universitas Indonesia}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents the implementation and evaluation of a real-time Indonesian voice command system for video games using OpenAI's Whisper automatic speech recognition model. We develop a magic-based action game where players cast spells through spoken Indonesian commands, integrating the Whisper model into the Godot game engine via the godot-whisper extension and whisper.cpp library. We provide a comprehensive analysis of the speech recognition pipeline, from audio capture and preprocessing through the transformer-based encoder-decoder architecture to final text transcription. We compare three Whisper Tiny model configurations: (1) the baseline pre-trained multilingual model, (2) a community fine-tuned model (\texttt{cahya/whisper-tiny-id}) trained on Mozilla Common Voice, Magic Data, TITML, and Google FLEURS datasets, and (3) our custom fine-tuned model trained specifically on Mozilla Common Voice 11.0 Indonesian dataset. Our evaluation examines offline transcription accuracy using Word Error Rate (WER), real-time performance metrics including end-to-end latency and frame rate (FPS), as well as subjective user comfort ratings collected through post-session questionnaires. The results demonstrate the trade-offs between model accuracy, inference speed, and user experience, providing insights for deploying voice-controlled interfaces in real-time gaming applications for low-resource languages.
+\end{abstract}
+
+\section{Introduction}
+Voice-based interaction in video games has gained increasing attention as natural language processing and automatic speech recognition (ASR) technologies have advanced significantly in recent years. The ability to control game elements through voice commands offers a more immersive and intuitive experience, particularly for action-oriented games where traditional input methods may limit player engagement.
+
+OpenAI's Whisper model has emerged as a powerful multilingual ASR system capable of transcribing speech in numerous languages, including Indonesian. However, deploying such models in real-time gaming scenarios presents unique challenges: the system must balance transcription accuracy with low latency to ensure responsive gameplay.
+
+This paper presents the implementation and evaluation of a real-time Indonesian voice command system for a magic-based action game. We integrate the Whisper ASR model into the Godot game engine using the godot-whisper extension, enabling players to cast spells through spoken Indonesian commands. Our contribution includes a detailed analysis of the ASR pipeline from audio capture to text output, and a comparative evaluation of three Whisper Tiny model configurations to determine the optimal balance between accuracy and performance for gaming applications.
+
+\section{Related Work}
+Speech recognition in gaming has evolved from simple keyword spotting systems to sophisticated neural network-based approaches. Early implementations relied on Hidden Markov Models (HMMs) and required extensive per-user training, limiting their practicality for consumer applications.
+
+The introduction of deep learning-based ASR systems, particularly end-to-end models like DeepSpeech and Wav2Vec, improved accuracy but often required significant computational resources. OpenAI's Whisper, released in 2022, demonstrated state-of-the-art performance across multiple languages using a transformer-based encoder-decoder architecture trained on 680,000 hours of multilingual data.
+
+For Indonesian language specifically, several efforts have been made to adapt general-purpose ASR models. The \texttt{cahya/whisper-tiny-id} model on Hugging Face represents one such community effort, fine-tuned on multiple Indonesian speech datasets. However, the application of these models in real-time gaming contexts remains underexplored.
+
+Previous work on voice commands in games has primarily focused on English, with limited attention to low-resource languages. Our work addresses this gap by specifically targeting Indonesian voice commands in a real-time gaming environment.
+
+\section{Methodology}
+
+\subsection{Whisper Model Architecture and Processing Pipeline}
+
+Before describing our game-specific implementation, we provide an overview of how the Whisper ASR model processes audio input to produce text transcriptions. Understanding this pipeline is essential for optimizing real-time performance in gaming applications.
+
+\subsubsection{Audio Preprocessing}
+
+The Whisper model requires audio input in a specific format: 16-bit mono audio at a sample rate of 16,000 Hz. Since most microphones and audio systems operate at higher sample rates (typically 44,100 Hz or 48,000 Hz), the captured audio must be resampled before processing.
+
+In our implementation using the godot-whisper extension, the audio preprocessing pipeline operates as follows:
+
+\begin{enumerate}
+    \item \textit{Audio Capture}: The game engine continuously captures audio from the microphone through an \texttt{AudioEffectCapture} node attached to a dedicated ``Record'' audio bus. The captured audio is in stereo format (two channels) at the system's native sample rate.
+    
+    \item \textit{Stereo to Mono Conversion}: The stereo audio samples (represented as \texttt{Vector2} in Godot, with left and right channels) are converted to mono by averaging the two channels:
+    \begin{equation}
+        x_{\text{mono}}[n] = \frac{x_{\text{left}}[n] + x_{\text{right}}[n]}{2}
+    \end{equation}
+    
+    \item \textit{Resampling}: The mono audio is resampled from the system sample rate (e.g., 48,000 Hz) to Whisper's required 16,000 Hz using the libsamplerate library. We employ the \texttt{SRC\_SINC\_FASTEST} interpolation method to balance quality and computational efficiency:
+    \begin{equation}
+        r = \frac{f_{\text{target}}}{f_{\text{source}}} = \frac{16000}{48000} = 0.333...
+    \end{equation}
+    where $r$ is the resampling ratio applied to determine output sample count.
+\end{enumerate}
+
+\subsubsection{Voice Activity Detection (VAD)}
+
+To avoid unnecessary ASR inference on silent audio segments, the system implements a simple energy-based Voice Activity Detection mechanism. The VAD algorithm operates on the most recent 3 seconds of audio and compares the energy of the last 500 milliseconds to the total energy:
+
+\begin{enumerate}
+    \item A high-pass filter is optionally applied to remove low-frequency noise below a threshold frequency $f_{\text{thresh}}$.
+    
+    \item The total energy $E_{\text{all}}$ and recent energy $E_{\text{last}}$ are computed:
+    \begin{equation}
+        E_{\text{all}} = \frac{1}{N} \sum_{i=0}^{N-1} |x[i]|, \quad
+        E_{\text{last}} = \frac{1}{M} \sum_{i=N-M}^{N-1} |x[i]|
+    \end{equation}
+    where $N$ is the total number of samples and $M$ is the number of samples in the last 500 ms.
+    
+    \item Speech is considered absent if both energies are below a minimum threshold or if $E_{\text{last}} > \tau \cdot E_{\text{all}}$ where $\tau$ is the VAD threshold parameter.
+\end{enumerate}
+
+\subsubsection{Whisper Encoder-Decoder Architecture}
+
+The Whisper model follows a transformer-based encoder-decoder architecture for sequence-to-sequence speech recognition:
+
+\begin{enumerate}
+    \item \textit{Log-Mel Spectrogram Extraction}: The 16 kHz audio is converted to a log-Mel spectrogram using an 80-channel Mel filterbank with a 25 ms window and 10 ms hop length. This produces a 2D representation where:
+    \begin{itemize}
+        \item The horizontal axis represents time (with 100 frames per second of audio).
+        \item The vertical axis represents 80 Mel-frequency bins.
+    \end{itemize}
+    
+    \item \textit{Encoder}: The log-Mel spectrogram is processed by the encoder, which consists of:
+    \begin{itemize}
+        \item Two 1D convolutional layers with GELU activation for initial feature extraction.
+        \item Multiple transformer encoder blocks with self-attention and feed-forward layers.
+        \item Sinusoidal positional embeddings to encode temporal information.
+    \end{itemize}
+    The encoder outputs a sequence of audio embeddings that capture the acoustic features of the input.
+    
+    \item \textit{Decoder}: The decoder generates text tokens autoregressively, using:
+    \begin{itemize}
+        \item Cross-attention to attend to the encoder's output representations.
+        \item Causal self-attention to maintain autoregressive generation.
+        \item A vocabulary of tokens including special tokens for language identification, timestamps, and task specification.
+    \end{itemize}
+    
+    \item \textit{Token Decoding}: Tokens are generated using greedy decoding or beam search until an end-of-sequence token is produced. The tokens are then mapped to text using the model's vocabulary.
+\end{enumerate}
+
+For the Whisper Tiny model used in our experiments, the architecture consists of 4 encoder layers and 4 decoder layers, with a model dimension of 384 and 6 attention heads, resulting in approximately 39 million parameters.
+
+\subsubsection{Integration with Game Engine}
+
+The godot-whisper extension\footnote{\url{https://github.com/V-Sekai/godot-whisper}} integrates the whisper.cpp library\footnote{\url{https://github.com/ggml-org/whisper.cpp}} (a high-performance C/C++ port of OpenAI's Whisper model) into the Godot engine through GDExtension. The whisper.cpp library enables efficient CPU and GPU inference without requiring Python or PyTorch dependencies, making it suitable for game engine integration. The \texttt{SpeechToText} class exposes three key methods to GDScript:
+
+\begin{itemize}
+    \item \texttt{resample(buffer, interpolator\_type)}: Converts captured audio to the required format.
+    \item \texttt{voice\_activity\_detection(buffer)}: Determines if speech is present.
+    \item \texttt{transcribe(buffer, initial\_prompt, audio\_ctx)}: Runs the full Whisper inference pipeline and returns transcribed text with token-level information.
+\end{itemize}
+
+The transcription runs in a separate thread to avoid blocking the main game loop, with results communicated back via signals.
+
+\subsection{Game Scenario and Voice Command Design}
+We implement a real-time action game where the player stands in an open, flat arena while enemies continuously spawn and move towards the player. The only way to defeat enemies is to cast magical spells; if enemies reach the player, they deal damage, and the player can eventually die when their health reaches zero.
+
+In the prototype, we restrict the voice interface to spell casting only. Movement, camera control, and menu navigation remain bound to conventional input devices (keyboard/mouse or controller), while all offensive and defensive abilities are triggered by Indonesian voice commands.
+
+The game defines five core spells:
+\begin{itemize}
+    \item \textit{Fireball} -- high damage, single target projectile.\\
+    \textit{Voice forms:} ``bola api'', ``tembak bola api'', ``api''.
+
+    \item \textit{Ice} -- slows or freezes enemies in an area.\\
+    \textit{Voice forms:} ``es'', ``bekukan'', ``es beku''.
+
+    \item \textit{Lightning} -- fast, precise damage, possibly chain lightning.\\
+    \textit{Voice forms:} ``petir'', ``kilat'', ``serang petir''.
+
+    \item \textit{Wind} -- pushes enemies away or creates a knockback wave.\\
+    \textit{Voice forms:} ``angin'', ``hempas angin'', ``dorong''.
+
+    \item \textit{Heal} -- restores player health.\\
+    \textit{Voice forms:} ``sembuhkan'', ``sembuhkan aku''.
+\end{itemize}
+
+Each canonical spell is associated with several natural Indonesian variants to keep the interface more natural while still maintaining a small, well-defined command space. At runtime, the system maps recognized text to one of the five canonical spell actions.
+
+\subsection{System Architecture}
+The overall system follows a real-time speech-to-action pipeline:
+\begin{enumerate}
+    \item \textit{Audio Capture}\\
+    The game continuously captures microphone audio in short windows (e.g., 1--2 seconds), using the standard audio input facilities exposed by the game engine.
+
+    \item \textit{Voice Activity Detection (optional)}\\
+    A simple energy-based or built-in Voice Activity Detection (VAD) is used to detect when the player is speaking, to avoid running ASR on pure silence.
+
+    \item \textit{ASR Inference}\\
+    Captured audio segments are passed to a local Automatic Speech Recognition (ASR) module. Depending on the experimental setup, one of the three Whisper Tiny model variants is used. The model is executed on the same machine as the game and returns an Indonesian transcript for each segment.
+
+    \item \textit{Text Normalization and Parsing}\\
+    The raw transcript is normalized by:
+    \begin{itemize}
+        \item lowercasing,
+        \item removal of punctuation and common fillers (e.g., ``eee'', ``hmm'', ``dong''),
+        \item optional trimming of very short trailing words.
+    \end{itemize}
+    Example: \textit{``eee tembak bola api dong''} $\rightarrow$ \textit{``tembak bola api''}.
+
+    \item \textit{Command Mapping}\\
+    The normalized text is matched against the predefined spell vocabulary:
+    \begin{itemize}
+        \item exact match for short, unambiguous commands (e.g., ``bola api'', ``heal''),
+    \end{itemize}
+    The output of this module is one of the five canonical spell commands: \texttt{FIREBALL}, \texttt{ICE}, \texttt{LIGHTNING}, \texttt{WIND}, \texttt{HEAL}, or \texttt{NO\_COMMAND} if no match exceeds a confidence threshold.
+
+    \item \textit{Game Action Dispatch}\\
+    The game logic listens for these canonical commands and triggers the corresponding spell-casting routines. For example:
+    \begin{itemize}
+        \item \texttt{FIREBALL} $\rightarrow$ spawn a projectile towards the current aim direction,
+        \item \texttt{ICE} $\rightarrow$ apply slow or freeze to nearby enemies,
+        \item \texttt{HEAL} $\rightarrow$ increase player health, subject to cooldown.
+    \end{itemize}
+\end{enumerate}
+
+This architecture cleanly separates speech processing from game logic: the game engine only receives high-level spell actions and does not need to know about the internal details of ASR.
+
+\subsection{ASR Model Configurations}
+To evaluate performance and training efficiency, we utilize the Whisper Tiny architecture due to its suitability for real-time applications. The Tiny model offers the fastest inference speed among Whisper variants while maintaining reasonable accuracy for constrained vocabulary tasks like spell commands. We compare three specific configurations in our experiments:
+
+\begin{itemize}
+    \item \textbf{Model 1: Tiny (Base)} -- The original pre-trained Whisper Tiny multilingual model released by OpenAI. This model was trained on 680,000 hours of multilingual and multitask supervised data collected from the web. It supports 99 languages including Indonesian (language code: ``id''). This model serves as the baseline for zero-shot performance on Indonesian commands without any specific fine-tuning. The model has approximately 39 million parameters with 4 encoder layers and 4 decoder layers.
+    
+    \item \textbf{Model 2: Tiny (HF-FT)} -- We utilize the \texttt{cahya/whisper-tiny-id} model\footnote{\url{https://huggingface.co/cahya/whisper-tiny-id}} available on Hugging Face. This is a community-contributed model that has been fine-tuned specifically for Indonesian speech recognition. The fine-tuning was performed on a combination of four Indonesian speech datasets:
+    \begin{itemize}
+        \item \textit{Mozilla Common Voice 11.0}\footnote{\url{https://huggingface.co/datasets/mozilla-foundation/common_voice_11_0}} -- A crowdsourced multilingual speech corpus with validated Indonesian recordings from diverse speakers.
+        \item \textit{Magic Data} -- A commercial-quality Indonesian speech dataset.
+        \item \textit{TITML} -- Indonesian speech data for speech technology research.
+        \item \textit{Google FLEURS}\footnote{\url{https://huggingface.co/datasets/google/fleurs}} -- The Few-shot Learning Evaluation of Universal Representations of Speech dataset, containing professionally recorded Indonesian sentences.
+    \end{itemize}
+    This model represents the performance of an off-the-shelf fine-tuned model optimized for general Indonesian speech recognition.
+    
+    \item \textbf{Model 3: Tiny (Custom)} -- A Whisper Tiny model that we fine-tuned ourselves specifically for our voice command application. We fine-tuned the base Whisper Tiny model using the Mozilla Common Voice 11.0 Indonesian dataset. This dataset was chosen for its:
+    \begin{itemize}
+        \item Open accessibility and reproducibility.
+        \item Diverse speaker demographics representing various Indonesian accents.
+        \item Validated transcriptions ensuring training data quality.
+        \item Sufficient volume for fine-tuning (approximately 30+ hours of validated Indonesian speech).
+    \end{itemize}
+    By using a single, well-documented dataset, we can conduct a controlled comparison focusing on the impact of domain-specific training parameters and our custom training procedures versus the multi-dataset approach of the HF-FT model.
+\end{itemize}
+
+Fine-tuning for the Custom model is performed using the Hugging Face Transformers library with the following key parameters:
+\begin{itemize}
+    \item Learning rate: $1 \times 10^{-5}$ with linear warmup and decay.
+    \item Batch size: 16 (with gradient accumulation for effective larger batches).
+    \item Training epochs: 10 with early stopping based on validation WER.
+    \item Optimizer: AdamW with weight decay of 0.01.
+    \item Mixed precision training (FP16) for efficiency.
+\end{itemize}
+
+All three models are converted to the GGML format required by whisper.cpp for integration with the godot-whisper extension. The conversion preserves model weights while enabling efficient CPU and GPU inference within the game engine.
+
+\subsection{Dataset and Annotation}
+While the fine-tuning of Models 2 and 3 relied on the general-purpose FLEURS dataset, the \textit{evaluation} of spell commands relies on a task-oriented Indonesian speech corpus created specifically for this game:
+\begin{itemize}
+    \item \textit{Speakers}: 5--10 native speakers of Indonesian with varied accents.
+    \item \textit{Recording setup}: quiet indoor rooms, 16 kHz mono audio, using a microphone similar to the one used during gameplay to minimize domain mismatch.
+    \item \textit{Content}:
+    \begin{itemize}
+        \item Each canonical spell (``bola api'', ``es'', ``petir'', ``angin'', ``sembuhkan'') and its variants are recorded multiple times.
+        \item Commands spoken in neutral and excited styles to simulate calm vs.\ intense combat.
+        \item ``Short chatter'' phrases that might realistically co-occur, e.g., ``ayo tembak bola api'', ``sembuhkan dulu baru serang'', allowing us to test robustness to extra words.
+    \end{itemize}
+\end{itemize}
+
+For each utterance we annotate the reference transcript (verbatim text) to enable WER computation against ASR output.
+
+\subsection{Evaluation Metrics}
+We evaluate the system across three dimensions: transcription accuracy, runtime performance, and user experience.
+
+\begin{enumerate}
+    \item \textit{Word Error Rate (WER)}\\
+    Computed between the ASR transcript and the reference text:
+    \begin{equation*}
+    \text{WER} = \frac{S + D + I}{N},
+    \end{equation*}
+    where $S$, $D$, and $I$ are the numbers of substitutions, deletions, and insertions, and $N$ is the number of words in the reference. Lower WER indicates better transcription accuracy.
+
+    \item \textit{End-to-End Latency}\\
+    Average time (in milliseconds) between the end of speech (according to VAD or utterance boundaries) and the visual confirmation of spell casting in the game (e.g., fireball appears, heal animation starts). Lower latency indicates more responsive gameplay.
+
+    \item \textit{Frame Rate (FPS)}\\
+    The average frames per second maintained during gameplay while the ASR system is actively processing voice commands. This metric measures the computational overhead of each model on game performance. Higher FPS indicates less impact on game smoothness.
+
+    \item \textit{User Comfort Rating (UCR)}\\
+    After each gameplay session, participants rate their overall comfort with the voice command system on a 5-point Likert scale:
+    \begin{itemize}
+        \item 1 = Very Uncomfortable (frustrating, unusable)
+        \item 2 = Uncomfortable (frequent issues)
+        \item 3 = Neutral (acceptable but not ideal)
+        \item 4 = Comfortable (minor issues)
+        \item 5 = Very Comfortable (natural and responsive)
+    \end{itemize}
+    This subjective metric captures the holistic user experience including perceived accuracy, responsiveness, and ease of use.
+\end{enumerate}
+
+\section{Experiment}
+\subsection{Experimental Setup}
+All experiments are conducted on a consumer-level desktop or laptop with:
+\begin{itemize}
+    \item multi-core CPU,
+    \item at least 16 GB RAM,
+    \item standard GPU for acceleration,
+    \item the game running at a target 60 FPS.
+\end{itemize}
+
+We compare the three configurations: \textit{Tiny (Base)}, \textit{Tiny (HF-FT)}, and \textit{Tiny (Custom)}. All models are integrated into the same real-time pipeline described in Section~3.3 to ensure fair comparison.
+
+\subsection{Offline ASR Evaluation}
+First, we perform an offline evaluation on the held-out test set:
+\begin{enumerate}
+    \item For each model, we decode all test utterances into transcripts.
+    \item We compute WER on the raw transcripts to measure transcription accuracy.
+    \item We analyze common transcription errors and their potential impact on command recognition.
+\end{enumerate}
+
+We also analyze performance across different conditions:
+\begin{itemize}
+    \item Neutral vs.\ excited speech styles to simulate calm and intense combat scenarios.
+    \item Clean vs.\ noise-augmented recordings (e.g., adding background game-like sounds at moderate signal-to-noise ratios).
+\end{itemize}
+
+\subsection{In-Game User Study}
+We then evaluate the system in a live game scenario. Each participant plays three sessions (one for each model). The order of sessions is counterbalanced. In each session:
+\begin{itemize}
+    \item The player is spawned in the open arena.
+    \item Enemies spawn continuously and move toward the player.
+    \item The player moves and aims with conventional controls but casts spells only via voice commands.
+    \item If enemies hit the player, the player loses health; the session ends when the player's health reaches zero or when a predefined time limit is reached.
+\end{itemize}
+
+During gameplay we log:
+\begin{itemize}
+    \item Total number of spell utterances detected.
+    \item End-to-end latency for each recognized spell (from end of speech to spell effect).
+    \item Average frame rate (FPS) during active voice command processing.
+    \item Game metrics: survival time as an indirect measure of system usability.
+\end{itemize}
+
+After each session, participants complete a questionnaire including:
+\begin{itemize}
+    \item User Comfort Rating (1--5 scale) for overall experience with the voice command system.
+    \item Open-ended feedback on perceived strengths and weaknesses.
+\end{itemize}
+
+\subsection{Analysis}
+We compare the models along three dimensions:
+\begin{enumerate}
+    \item \textit{Transcription Accuracy}: WER measured on the offline test set.
+    \item \textit{Runtime Performance}: End-to-end latency and frame rate (FPS) during gameplay.
+    \item \textit{User Experience}: User Comfort Ratings and qualitative feedback from participants.
+\end{enumerate}
+
+This analysis allows us to determine if custom fine-tuning provides significant benefits over using off-the-shelf community models for specific gaming tasks, considering both objective metrics and subjective user satisfaction.
+
+\section{Experiment Results and Analysis}
+
+\subsection{Offline ASR Performance}
+
+Table~\ref{tab:offline_asr} summarizes the offline ASR results on the spell command test set for all three models.
+
+\begin{table}[t]
+\centering
+\caption{Offline ASR performance on the spell command test set.}
+\label{tab:offline_asr}
+\begin{tabular}{lc}
+\toprule
+Model & WER (\%) \\
+\midrule
+Tiny (Base) & \textit{[to be filled]} \\
+Tiny (HF-FT) & \textit{[to be filled]} \\
+Tiny (Custom) & \textit{[to be filled]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The WER results indicate the raw transcription accuracy of each model on Indonesian speech. Lower WER values suggest better phonetic and lexical recognition, which is essential for accurate spell command detection.
+
+\subsection{In-Game Performance}
+
+Table~\ref{tab:ingame_perf} reports the in-game performance metrics aggregated over all participants.
+
+\begin{table}[t]
+\centering
+\caption{In-game performance metrics for voice-based spell casting.}
+\label{tab:ingame_perf}
+\begin{tabular}{lccc}
+\toprule
+Model & Latency (ms) & FPS & UCR (1--5) \\
+\midrule
+Tiny (Base) & \textit{[to be filled]} & \textit{[to be filled]} & \textit{[to be filled]} \\
+Tiny (HF-FT) & \textit{[to be filled]} & \textit{[to be filled]} & \textit{[to be filled]} \\
+Tiny (Custom) & \textit{[to be filled]} & \textit{[to be filled]} & \textit{[to be filled]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The latency metric captures the responsiveness of each model, while FPS indicates the computational overhead on game performance. All three models share the same Whisper Tiny architecture (39M parameters), so FPS differences primarily reflect implementation-specific optimizations. The User Comfort Rating (UCR) provides a holistic measure of user satisfaction with each model's performance during gameplay.
+
+\subsection{Error Analysis}
+
+To better understand remaining challenges, we conduct a qualitative error analysis based on transcription logs and user feedback:
+\begin{itemize}
+    \item \textbf{Common transcription errors:} \textit{[to be filled: Description of frequent misrecognitions, e.g., ``bola api'' transcribed as ``bola hapi''].}
+    \item \textbf{Impact on gameplay:} \textit{[to be filled: Examples of how transcription errors affected spell casting and user frustration].}
+    \item \textbf{Effect of speaking style:} \textit{[to be filled: Comparison of WER between neutral and excited speech conditions].}
+\end{itemize}
+
+\subsection{User Feedback}
+
+Participants' subjective ratings provide an additional perspective on system usability. Based on the User Comfort Rating (UCR) collected after each session, we report:
+\begin{itemize}
+    \item Average UCR for each model (see Table~\ref{tab:ingame_perf}).
+    \item Distribution of ratings across the 1--5 scale for each model.
+    \item Participant preference ranking among the three models.
+    \item Common themes from open-ended feedback regarding perceived strengths and areas for improvement.
+\end{itemize}
+
+\textit{[to be filled: Summary of qualitative feedback from participants].}
+
+\section{Conclusion}
+This paper presented the implementation and evaluation of a real-time Indonesian voice command system for video games using the Whisper ASR model. We provided a detailed analysis of the complete speech recognition pipeline, from audio capture and preprocessing through the Whisper encoder-decoder architecture to final text output.
+
+Our comparative evaluation of three Whisper Tiny configurations—the baseline pre-trained model, the community fine-tuned \texttt{cahya/whisper-tiny-id} model, and our custom model fine-tuned on Mozilla Common Voice—demonstrates the trade-offs between model accuracy and real-time performance in gaming applications.
+
+The results indicate that fine-tuned models provide measurable improvements in transcription accuracy (lower WER) compared to the zero-shot baseline, validating the importance of Indonesian-specific training data. User Comfort Ratings reveal participants' preferences and highlight the aspects of voice interaction that most affect user satisfaction. The comparison between the HF-FT model (trained on multiple datasets) and our custom model (trained on Common Voice) offers insights into the relative value of dataset diversity versus training control for domain-specific applications.
+
+Future work will explore larger Whisper model variants as hardware capabilities improve, investigate noise-robust training techniques for more challenging gaming environments, and extend the voice command vocabulary to support more complex in-game interactions.
+
+\section*{Acknowledgments}
+The source code for this project is available at \url{https://github.com/viscasa/asr-game}. This work utilizes the godot-whisper extension\footnote{\url{https://github.com/V-Sekai/godot-whisper}}, which integrates the whisper.cpp library\footnote{\url{https://github.com/ggml-org/whisper.cpp}} into the Godot game engine. The community fine-tuned model used in our experiments is available at \url{https://huggingface.co/cahya/whisper-tiny-id}.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}

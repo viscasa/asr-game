@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://xheu2ilfn6da"]
 
 [ext_resource type="Script" uid="uid://cmaf7xgvyitbo" path="res://script/VoiceManager.gd" id="1_o7g84"]
-[ext_resource type="WhisperResource" uid="uid://cfn6fybhguis3" path="res://addons/godot_whisper/models/ggml-model.bin" id="2_h38mi"]
+[ext_resource type="WhisperResource" uid="uid://c61tfb3kjhjul" path="res://addons/godot_whisper/models/ggml-model-cahya.bin" id="2_o7g84"]
 [ext_resource type="Script" uid="uid://bah6ooxpu4f0w" path="res://addons/godot_whisper/capture_stream_to_text.gd" id="3_va2mp"]
 
 [sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_j5tns"]
@@ -11,7 +11,7 @@ script = ExtResource("1_o7g84")
 
 [node name="CaptureStreamToText" type="SpeechToText" parent="."]
 language = 17
-language_model = ExtResource("2_h38mi")
+language_model = ExtResource("2_o7g84")
 script = ExtResource("3_va2mp")
 use_dynamic_audio_context = false
 metadata/_custom_type_script = "uid://bah6ooxpu4f0w"

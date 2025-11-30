@@ -1,22 +1,41 @@
-[gd_scene load_steps=5 format=3 uid="uid://clwgxs242kd36"]
+[gd_scene load_steps=6 format=3 uid="uid://clwgxs242kd36"]
 
 [ext_resource type="Script" uid="uid://bofthgjv1qgbi" path="res://script/fireball.gd" id="1_xvsru"]
+[ext_resource type="Shader" uid="uid://cs4l4wa8e5q80" path="res://assets/shaders/fireball.gdshader" id="2_fire"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_3xayx"]
+radius = 0.6
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xvsru"]
-albedo_color = Color(1, 0.4862745, 0, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fire"]
+render_priority = 0
+shader = ExtResource("2_fire")
+shader_parameter/fire_color_inner = Color(1, 0.95, 0.4, 1)
+shader_parameter/fire_color_outer = Color(1, 0.4, 0.05, 1)
+shader_parameter/fire_color_edge = Color(0.9, 0.15, 0, 1)
+shader_parameter/fire_speed = 2.5
+shader_parameter/noise_scale = 1.94400004484
+shader_parameter/distortion_strength = 0.35
+shader_parameter/edge_softness = 0.0
+shader_parameter/pulse_speed = 4.0
+shader_parameter/pulse_strength = 0.12
 
 [sub_resource type="SphereMesh" id="SphereMesh_hwcit"]
-material = SubResource("StandardMaterial3D_xvsru")
+material = SubResource("ShaderMaterial_fire")
 
-[node name="Area3D" type="Area3D"]
+[node name="Fireball" type="Area3D"]
 script = ExtResource("1_xvsru")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_3xayx")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="FireCore" type="MeshInstance3D" parent="."]
 mesh = SubResource("SphereMesh_hwcit")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.5, 0.1, 1)
+light_energy = 3.0
+light_indirect_energy = 0.5
+omni_range = 6.0
+omni_attenuation = 1.5
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
